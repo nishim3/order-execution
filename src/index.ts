@@ -39,11 +39,11 @@ function generateMockTxHash(): string {
   return signature;
 }
 
-// Base price for simulation (you can adjust this)
+// Base price for simulation 
 const basePrice = 1.0;
 
 class MockDexRouter {
-  private defaultMaxSlippage: number = 0.05; // 5% default max slippage
+  private defaultMaxSlippage: number = 0.02; // 5% default max slippage
 
   async getRaydiumQuote(tokenIn: string, tokenOut: string, amount: number): Promise<Quote> {
     // Simulate network delay
@@ -75,12 +75,12 @@ class MockDexRouter {
       this.getMeteorQuote(tokenIn, tokenOut, amount)
     ]);
 
-    console.log(`📊 Raydium: $${raydiumQuote.price.toFixed(4)} (fee: ${(raydiumQuote.fee * 100).toFixed(2)}%)`);
-    console.log(`📊 Meteor: $${meteorQuote.price.toFixed(4)} (fee: ${(meteorQuote.fee * 100).toFixed(2)}%)`);
+    console.log(`📊 Raydium: $${raydiumQuote.price.toFixed(4)} (fee: ${(raydiumQuote.fee * 100).toFixed(2)}%) → Effective: $${(raydiumQuote.price * (1 + raydiumQuote.fee)).toFixed(4)}`);
+    console.log(`📊 Meteor: $${meteorQuote.price.toFixed(4)} (fee: ${(meteorQuote.fee * 100).toFixed(2)}%) → Effective: $${(meteorQuote.price * (1 + meteorQuote.fee)).toFixed(4)}`);
 
-    // Calculate effective price (price - fee)
-    const raydiumEffective = raydiumQuote.price * (1 - raydiumQuote.fee);
-    const meteorEffective = meteorQuote.price * (1 - meteorQuote.fee);
+    // Calculate effective price (price + fee)
+    const raydiumEffective = raydiumQuote.price * (1 + raydiumQuote.fee);
+    const meteorEffective = meteorQuote.price * (1 + meteorQuote.fee);
 
     if (raydiumEffective < meteorEffective) {
       console.log(`✅ Raydium offers better price: $${raydiumEffective.toFixed(4)} vs $${meteorEffective.toFixed(4)}`);
@@ -101,6 +101,20 @@ class MockDexRouter {
     maxSlippage?: number
   ): Promise<SwapResult> {
     const { dex, quote } = await this.getBestQuote(tokenIn, tokenOut, amount);
+    return this.executeBestSwapWithQuote(tokenIn, tokenOut, amount, { dex, quote }, maxSlippage);
+  }
+
+  /**
+   * Execute a swap with a pre-obtained quote (to avoid duplicate quote fetching)
+   */
+  async executeBestSwapWithQuote(
+    tokenIn: string, 
+    tokenOut: string, 
+    amount: number, 
+    bestQuote: { dex: string; quote: Quote },
+    maxSlippage?: number
+  ): Promise<SwapResult> {
+    const { dex, quote } = bestQuote;
     
     const order: Order = {
       tokenIn,
@@ -120,22 +134,35 @@ class MockDexRouter {
     // Use provided maxSlippage or default
     const maxAllowedSlippage = maxSlippage || this.defaultMaxSlippage;
     
+    // Only check slippage if executed price is higher than quoted price (worse for user)
+    if (result.executedPrice > quote.price) {
+      const slippage = (result.executedPrice - quote.price) / quote.price;
+      
+      if (slippage > maxAllowedSlippage) {
+        console.log(`❌ Swap rejected due to excessive slippage!`);
+        console.log(`   Expected Price: $${quote.price.toFixed(4)}`);
+        console.log(`   Executed Price: $${result.executedPrice.toFixed(4)}`);
+        console.log(`   Slippage: ${(slippage * 100).toFixed(2)}%`);
+        console.log(`   Max Allowed: ${(maxAllowedSlippage * 100).toFixed(2)}%`);
+        throw new Error(`Slippage ${(slippage * 100).toFixed(2)}% exceeds maximum allowed ${(maxAllowedSlippage * 100).toFixed(2)}%`);
+      }
+    }
+    
+    // Log success (either slippage was acceptable or price improved)
     console.log(`✅ Swap completed!`);
     console.log(`   DEX: ${dex}`);
     console.log(`   Quote Price: $${quote.price.toFixed(4)}`);
     console.log(`   Executed Price: $${result.executedPrice.toFixed(4)}`);
-    console.log(`   Slippage: ${(slippage * 100).toFixed(2)}%`);
-    console.log(`   TX Hash: ${result.txHash}`);
     
-    // Check if slippage exceeds tolerance
-    if (slippage > maxAllowedSlippage) {
-      console.log(`❌ Swap rejected due to excessive slippage!`);
-      console.log(`   Expected Price: $${quote.price.toFixed(4)}`);
-      console.log(`   Executed Price: $${result.executedPrice.toFixed(4)}`);
-      console.log(`   Slippage: ${(slippage * 100).toFixed(2)}%`);
-      console.log(`   Max Allowed: ${(maxAllowedSlippage * 100).toFixed(2)}%`);
-      throw new Error(`Slippage ${(slippage * 100).toFixed(2)}% exceeds maximum allowed ${(maxAllowedSlippage * 100).toFixed(2)}%`);
+    if (result.executedPrice > quote.price) {
+      console.log(`   Slippage: ${((result.executedPrice - quote.price) / quote.price * 100).toFixed(2)}%`);
+    } else if (result.executedPrice < quote.price) {
+      console.log(`   Price Improvement: ${((quote.price - result.executedPrice) / quote.price * 100).toFixed(2)}%`);
+    } else {
+      console.log(`   No Price Change`);
     }
+    
+    console.log(`   TX Hash: ${result.txHash}`);
     
     return result;
   }
