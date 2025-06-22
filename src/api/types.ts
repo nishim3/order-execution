@@ -53,11 +53,6 @@ export interface OrderProgress {
     executedPrice?: number;
     slippage?: number;
     error?: string;
-    transactions?: {
-      wrapTxHash?: string;
-      swapTxHash?: string;
-      unwrapTxHash?: string;
-    };
     requiresWrapping?: boolean;
   };
   timestamp: Date;
@@ -82,9 +77,6 @@ export interface OrderRecord {
   updated_at: Date;
   attempts?: number;
   failure_reason?: string;
-  wrap_tx_hash?: string;
-  swap_tx_hash?: string;
-  unwrap_tx_hash?: string;
   requires_wrapping?: boolean;
 }
 

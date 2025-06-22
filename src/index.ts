@@ -18,11 +18,6 @@ interface Quote {
 interface SwapResult {
   txHash: string;
   executedPrice: number;
-  transactions?: {
-    wrapTxHash?: string;    // Transaction for token wrapping (e.g., SOL → wSOL)
-    swapTxHash: string;     // Transaction for the actual swap
-    unwrapTxHash?: string;  // Transaction for unwrapping (e.g., wSOL → SOL)
-  };
   requiresWrapping?: boolean;
 }
 
@@ -71,30 +66,11 @@ class MockDexRouter {
     // Determine if wrapping is required based on token types
     const requiresWrapping = this.needsWrapping(order.tokenIn, order.tokenOut);
     
-    if (requiresWrapping) {
-      // Generate multiple transaction hashes for complex operations
-      const wrapTxHash = generateMockTxHash();
-      const swapTxHash = generateMockTxHash();
-      const unwrapTxHash = this.needsUnwrapping(order.tokenOut) ? generateMockTxHash() : undefined;
-      
-      return { 
-        txHash: swapTxHash, // Primary transaction hash (for backward compatibility)
-        executedPrice: finalPrice,
-        requiresWrapping: true,
-        transactions: {
-          wrapTxHash,
-          swapTxHash,
-          unwrapTxHash
-        }
-      };
-    } else {
-      // Simple swap - single transaction
-      return { 
-        txHash: generateMockTxHash(), 
-        executedPrice: finalPrice,
-        requiresWrapping: false
-      };
-    }
+    return { 
+      txHash: generateMockTxHash(), 
+      executedPrice: finalPrice,
+      requiresWrapping
+    };
   }
 
   /**
@@ -106,16 +82,6 @@ class MockDexRouter {
     // Any token → SOL (may need wSOL → SOL unwrapping at the end)
     const wrappingTokens = ['SOL'];
     return wrappingTokens.includes(tokenIn) || wrappingTokens.includes(tokenOut);
-  }
-
-  /**
-   * Determine if unwrapping is needed for the output token
-   */
-  private needsUnwrapping(tokenOut: string): boolean {
-    // Unwrapping scenarios:
-    // Any swap resulting in SOL needs unwrapping
-    const unwrappingTokens = ['SOL'];
-    return unwrappingTokens.includes(tokenOut);
   }
 
   /**
@@ -223,16 +189,9 @@ class MockDexRouter {
     }
     
     // Display transaction details
-    if (result.requiresWrapping && result.transactions) {
-      console.log(`   🔄 Complex Transaction (Wrapping Required):`);
-      if (result.transactions.wrapTxHash) {
-        console.log(`   📦 Wrap TX: ${result.transactions.wrapTxHash}`);
-      }
-      console.log(`   🔀 Swap TX: ${result.transactions.swapTxHash}`);
-      if (result.transactions.unwrapTxHash) {
-        console.log(`   📤 Unwrap TX: ${result.transactions.unwrapTxHash}`);
-      }
-      console.log(`   🏷️  Primary TX: ${result.txHash}`);
+    if (result.requiresWrapping) {
+      console.log(`   🔄 Transaction involved wrapping`);
+      console.log(`   TX Hash: ${result.txHash}`);
     } else {
       console.log(`   TX Hash: ${result.txHash}`);
     }

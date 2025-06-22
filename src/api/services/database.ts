@@ -52,9 +52,6 @@ export class DatabaseService {
       // Add new columns if they do not exist
       await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS attempts INTEGER DEFAULT 1;`);
       await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS failure_reason TEXT;`);
-      await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS wrap_tx_hash VARCHAR(100);`);
-      await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS swap_tx_hash VARCHAR(100);`);
-      await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS unwrap_tx_hash VARCHAR(100);`);
       await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS requires_wrapping BOOLEAN DEFAULT FALSE;`);
 
       // Create indexes (safe to run even if already exist)
@@ -111,9 +108,6 @@ export class DatabaseService {
       errorMessage?: string | null;
       attempts?: number;
       failureReason?: string;
-      wrapTxHash?: string;
-      swapTxHash?: string;
-      unwrapTxHash?: string;
       requiresWrapping?: boolean;
     }
   ): Promise<void> {
@@ -159,18 +153,6 @@ export class DatabaseService {
       if (data?.failureReason) {
         updates.push(`failure_reason = $${paramIndex++}`);
         values.push(data.failureReason);
-      }
-      if (data?.wrapTxHash) {
-        updates.push(`wrap_tx_hash = $${paramIndex++}`);
-        values.push(data.wrapTxHash);
-      }
-      if (data?.swapTxHash) {
-        updates.push(`swap_tx_hash = $${paramIndex++}`);
-        values.push(data.swapTxHash);
-      }
-      if (data?.unwrapTxHash) {
-        updates.push(`unwrap_tx_hash = $${paramIndex++}`);
-        values.push(data.unwrapTxHash);
       }
       if (data?.requiresWrapping !== undefined) {
         updates.push(`requires_wrapping = $${paramIndex++}`);

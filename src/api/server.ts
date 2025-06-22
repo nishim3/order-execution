@@ -256,11 +256,6 @@ fastify.get('/api/orders/:orderId', async (request, reply) => {
         executedPrice: order.executed_price,
         slippage: order.slippage,
         error: order.error_message,
-        transactions: order.requires_wrapping ? {
-          wrapTxHash: order.wrap_tx_hash,
-          swapTxHash: order.swap_tx_hash,
-          unwrapTxHash: order.unwrap_tx_hash,
-        } : undefined,
         requiresWrapping: order.requires_wrapping,
       },
       timestamp: order.updated_at,

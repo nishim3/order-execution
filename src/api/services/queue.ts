@@ -224,7 +224,6 @@ export class QueueService {
         executedPrice: swapResult.executedPrice,
         slippage: slippage,
         attempts: attemptNumber + 1,
-        transactions: swapResult.transactions,
         requiresWrapping: swapResult.requiresWrapping,
       });
 
@@ -234,9 +233,6 @@ export class QueueService {
         slippage: slippage,
         attempts: attemptNumber + 1,
         errorMessage: null, // Clear any previous error messages from failed attempts
-        wrapTxHash: swapResult.transactions?.wrapTxHash,
-        swapTxHash: swapResult.transactions?.swapTxHash,
-        unwrapTxHash: swapResult.transactions?.unwrapTxHash,
         requiresWrapping: swapResult.requiresWrapping,
       });
 
