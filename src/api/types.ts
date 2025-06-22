@@ -44,11 +44,21 @@ export interface OrderProgress {
       dex: string;
       price: number;
       fee: number;
+      feeAmount?: number;
+      amountAfterFee?: number;
+      feePercentage?: string;
     };
+    estimatedOutput?: string;
     txHash?: string;
     executedPrice?: number;
     slippage?: number;
     error?: string;
+    transactions?: {
+      wrapTxHash?: string;
+      swapTxHash?: string;
+      unwrapTxHash?: string;
+    };
+    requiresWrapping?: boolean;
   };
   timestamp: Date;
 }
@@ -70,6 +80,12 @@ export interface OrderRecord {
   error_message?: string;
   created_at: Date;
   updated_at: Date;
+  attempts?: number;
+  failure_reason?: string;
+  wrap_tx_hash?: string;
+  swap_tx_hash?: string;
+  unwrap_tx_hash?: string;
+  requires_wrapping?: boolean;
 }
 
 // Redis active order data

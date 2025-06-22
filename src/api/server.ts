@@ -91,8 +91,12 @@ fastify.post('/api/orders/quote', async (request, reply) => {
       quoteRequest.amount
     );
 
-    // Calculate effective price (including fees)
-    const effectivePrice = bestQuote.quote.price * (1 + bestQuote.quote.fee);
+    // Calculate fee amount from input token
+    const feeAmount = quoteRequest.amount * bestQuote.quote.fee;
+    const amountAfterFee = quoteRequest.amount - feeAmount;
+    
+    // Calculate output based on amount after fee
+    const estimatedOutput = amountAfterFee * bestQuote.quote.price;
 
     const response = {
       tokenIn: quoteRequest.tokenIn,
@@ -102,10 +106,11 @@ fastify.post('/api/orders/quote', async (request, reply) => {
         dex: bestQuote.dex,
         price: bestQuote.quote.price,
         fee: bestQuote.quote.fee,
-        effectivePrice: effectivePrice,
+        feeAmount: feeAmount,
+        amountAfterFee: amountAfterFee,
         feePercentage: (bestQuote.quote.fee * 100).toFixed(2) + '%',
       },
-      estimatedOutput: (quoteRequest.amount / effectivePrice).toFixed(6),
+      estimatedOutput: estimatedOutput.toFixed(6),
       timestamp: new Date().toISOString(),
     };
 
@@ -220,20 +225,43 @@ fastify.get('/api/orders/:orderId', async (request, reply) => {
       });
     }
 
+    // Calculate fee details for completed orders (same as quote API)
+    let quoteData = undefined;
+    let estimatedOutput = undefined;
+    
+    if (order.quote_dex && order.quote_price && order.quote_fee) {
+      const feeAmount = parseFloat(order.amount.toString()) * parseFloat(order.quote_fee.toString());
+      const amountAfterFee = parseFloat(order.amount.toString()) - feeAmount;
+      const calculatedOutput = amountAfterFee * parseFloat(order.quote_price.toString());
+      
+      quoteData = {
+        dex: order.quote_dex,
+        price: order.quote_price,
+        fee: order.quote_fee,
+        feeAmount: feeAmount,
+        amountAfterFee: amountAfterFee,
+        feePercentage: (parseFloat(order.quote_fee.toString()) * 100).toFixed(2) + '%',
+      };
+      estimatedOutput = calculatedOutput.toFixed(6);
+    }
+
     const progress: OrderProgress = {
       orderId: order.id,
       status: order.status,
       message: getStatusMessage(order.status),
       data: {
-        quote: order.quote_dex ? {
-          dex: order.quote_dex,
-          price: order.quote_price!,
-          fee: order.quote_fee!,
-        } : undefined,
+        quote: quoteData,
+        estimatedOutput: estimatedOutput,
         txHash: order.tx_hash,
         executedPrice: order.executed_price,
         slippage: order.slippage,
         error: order.error_message,
+        transactions: order.requires_wrapping ? {
+          wrapTxHash: order.wrap_tx_hash,
+          swapTxHash: order.swap_tx_hash,
+          unwrapTxHash: order.unwrap_tx_hash,
+        } : undefined,
+        requiresWrapping: order.requires_wrapping,
       },
       timestamp: order.updated_at,
     };

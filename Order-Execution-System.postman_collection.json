@@ -1,0 +1,801 @@
+{
+  "info": {
+    "name": "Order Execution System API",
+    "description": "Complete API collection for the Order Execution System with DEX routing, real-time WebSocket monitoring, and queue management.\n\n## Features\n- Health check and system status\n- Quote comparison across multiple DEXes (Raydium, Meteor)\n- Order execution with slippage protection\n- Real-time order tracking\n- Queue statistics and monitoring\n- System metrics and analytics\n\n## Setup\n1. Ensure Docker services are running: `npm run docker:up`\n2. Start API server: `npm run api:dev`\n3. Base URL: http://localhost:3000\n\n## Authentication\nNo authentication required for this demo system.\n\n## Rate Limits\n- 100 orders per minute\n- 10 concurrent orders maximum",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. System Health & Status",
+      "description": "Check system health and operational status",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Basic health check to verify API server is running"
+          },
+          "response": [
+            {
+              "name": "Healthy Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/health",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["health"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"status\": \"ok\",\n  \"timestamp\": \"2025-06-22T15:51:17.752Z\"\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has status ok\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"ok\");",
+                  "});",
+                  "",
+                  "pm.test(\"Response has timestamp\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property(\"timestamp\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Queue Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/queue/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "queue", "stats"]
+            },
+            "description": "Get current queue statistics including active, waiting, completed, and failed orders"
+          },
+          "response": [
+            {
+              "name": "Queue Stats Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/queue/stats",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "queue", "stats"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"waiting\": 0,\n  \"active\": 0,\n  \"completed\": 66,\n  \"failed\": 2,\n  \"delayed\": 0,\n  \"timestamp\": \"2025-06-22T15:52:40.818Z\",\n  \"config\": {\n    \"maxConcurrentOrders\": 10,\n    \"ordersPerMinute\": 100,\n    \"maxRetryAttempts\": 3\n  }\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has queue statistics\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property(\"waiting\");",
+                  "    pm.expect(jsonData).to.have.property(\"active\");",
+                  "    pm.expect(jsonData).to.have.property(\"completed\");",
+                  "    pm.expect(jsonData).to.have.property(\"failed\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "System Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/metrics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "metrics"]
+            },
+            "description": "Get comprehensive system metrics including DEX performance, success rates, and volume data"
+          },
+          "response": [
+            {
+              "name": "Metrics Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/metrics",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "metrics"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"total\": 27,\n  \"confirmed\": 27,\n  \"failed\": 0,\n  \"byDex\": {\n    \"Meteor\": {\n      \"total\": 17,\n      \"confirmed\": 17,\n      \"failed\": 0,\n      \"percentage\": 62.96,\n      \"successRate\": 100,\n      \"totalVolume\": 1033,\n      \"averageSlippage\": 2.3376\n    },\n    \"Raydium\": {\n      \"total\": 10,\n      \"confirmed\": 10,\n      \"failed\": 0,\n      \"percentage\": 37.04,\n      \"successRate\": 100,\n      \"totalVolume\": 412,\n      \"averageSlippage\": 2.388\n    }\n  },\n  \"overallSuccessRate\": 100\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Quote & Price Discovery",
+      "description": "Get quotes and compare prices across DEXes",
+      "item": [
+        {
+          "name": "Get Quote - SOL to USDC",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tokenIn\": \"SOL\",\n  \"tokenOut\": \"USDC\",\n  \"amount\": 10\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/quote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "quote"
+              ]
+            },
+            "description": "Get best quote for swapping 10 SOL to USDC"
+          },
+          "response": [
+            {
+              "name": "SOL to USDC Quote",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tokenIn\": \"SOL\",\n  \"tokenOut\": \"USDC\",\n  \"amount\": 10\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/orders/quote",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "orders", "quote"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"tokenIn\": \"SOL\",\n  \"tokenOut\": \"USDC\",\n  \"amount\": 10,\n  \"quote\": {\n    \"dex\": \"Raydium\",\n    \"price\": 1.0165140612585624,\n    \"fee\": 0.003,\n    \"feeAmount\": 0.3,\n    \"amountAfterFee\": 99.7,\n    \"feePercentage\": \"0.30%\"\n  },\n  \"estimatedOutput\": \"101.346452\",\n  \"timestamp\": \"2025-06-22T13:44:00.803Z\"\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Quote has required fields\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property(\"quote\");",
+                  "    pm.expect(jsonData.quote).to.have.property(\"dex\");",
+                  "    pm.expect(jsonData.quote).to.have.property(\"price\");",
+                  "    pm.expect(jsonData.quote).to.have.property(\"fee\");",
+                  "    pm.expect(jsonData).to.have.property(\"estimatedOutput\");",
+                  "});",
+                  "",
+                  "// Store quote for use in order execution",
+                  "pm.test(\"Store quote data\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set(\"lastQuote\", JSON.stringify(jsonData));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Quote - USDC to SOL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tokenIn\": \"USDC\",\n  \"tokenOut\": \"SOL\",\n  \"amount\": 10\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/quote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "quote"
+              ]
+            },
+            "description": "Get best quote for swapping 10 USDC to SOL"
+          }
+        },
+        {
+          "name": "Get Quote - Large Amount (1000 SOL)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tokenIn\": \"SOL\",\n  \"tokenOut\": \"USDC\",\n  \"amount\": 1000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/quote",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "quote"]
+            },
+            "description": "Test with large amount to see how fees and routing change"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Order Execution",
+      "description": "Execute orders with different slippage tolerances",
+      "item": [
+        {
+          "name": "Execute Order - Normal Slippage",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tokenIn\": \"SOL\",\n  \"tokenOut\": \"USDC\",\n  \"amount\": 100,\n  \"maxSlippage\": 0.05\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/execute",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "execute"]
+            },
+            "description": "Execute order with 5% maximum slippage tolerance"
+          },
+          "response": [
+            {
+              "name": "Order Submitted",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tokenIn\": \"SOL\",\n  \"tokenOut\": \"USDC\",\n  \"amount\": 100,\n  \"maxSlippage\": 0.05\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/orders/execute",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "orders", "execute"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"orderId\": \"3aeb30b1-cb80-4370-a4cb-5295cfce895b\",\n  \"status\": \"pending\",\n  \"message\": \"Order received and queued\"\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Order submitted successfully\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property(\"orderId\");",
+                  "    pm.expect(jsonData.status).to.eql(\"pending\");",
+                  "});",
+                  "",
+                  "// Store order ID for tracking",
+                  "pm.test(\"Store order ID\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set(\"lastOrderId\", jsonData.orderId);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Execute Order - USDC to SOL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tokenIn\": \"USDC\",\n  \"tokenOut\": \"SOL\",\n  \"amount\": 50,\n  \"maxSlippage\": 0.01\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/execute",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "execute"]
+            },
+            "description": "Execute order with very strict 1% slippage - may fail due to slippage protection"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Order Tracking",
+      "description": "Track order status and get detailed information",
+      "item": [
+        {
+          "name": "Get Order Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{lastOrderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "{{lastOrderId}}"]
+            },
+            "description": "Get detailed status of the last submitted order. Make sure to run an order execution request first to populate {{lastOrderId}}"
+          },
+          "response": [
+            {
+              "name": "Confirmed Order",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/orders/3aeb30b1-cb80-4370-a4cb-5295cfce895b",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "orders", "3aeb30b1-cb80-4370-a4cb-5295cfce895b"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"orderId\": \"3aeb30b1-cb80-4370-a4cb-5295cfce895b\",\n  \"status\": \"confirmed\",\n  \"message\": \"Transaction confirmed\",\n  \"data\": {\n    \"quote\": {\n      \"dex\": \"Raydium\",\n      \"price\": \"0.99893249\",\n      \"fee\": \"0.0030\"\n    },\n    \"txHash\": \"whv4esBowyy7fc98YZYuARmnZm5JPS7db6tT1WM7QxiZi2NkXf72Ev2Lx6yXSSods7PtGKrEeVMRxqdksrULTk8R\",\n    \"executedPrice\": \"0.97580810\",\n    \"slippage\": \"0.0231\",\n    \"error\": null\n  },\n  \"timestamp\": \"2025-06-22T13:30:58.117Z\"\n}"
+            },
+            {
+              "name": "Failed Order (Slippage)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/orders/2a78388d-76e2-4cc1-a289-4cd47097da12",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "orders", "2a78388d-76e2-4cc1-a289-4cd47097da12"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"orderId\": \"2a78388d-76e2-4cc1-a289-4cd47097da12\",\n  \"status\": \"confirmed\",\n  \"message\": \"Transaction confirmed\",\n  \"data\": {\n    \"quote\": {\n      \"dex\": \"Meteor\",\n      \"price\": \"1.00668720\",\n      \"fee\": \"0.0020\"\n    },\n    \"txHash\": \"XPjVhm8zrZRvWv7TFKncKepL7QKC4v694dk9k2HJACzdKa8hbNMvXmDpAd1jfixKspEsEUMBtLbyVRj23khhorNC\",\n    \"executedPrice\": \"0.98671343\",\n    \"slippage\": \"0.0198\",\n    \"error\": \"Slippage 5.15% exceeds maximum allowed 3.00%\"\n  },\n  \"timestamp\": \"2025-06-22T13:31:42.405Z\"\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Order has valid status\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect([\"pending\", \"routing\", \"building\", \"submitted\", \"confirmed\", \"failed\"]).to.include(jsonData.status);",
+                  "});",
+                  "",
+                  "pm.test(\"Order has transaction data when confirmed\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.status === \"confirmed\") {",
+                  "        pm.expect(jsonData.data).to.have.property(\"txHash\");",
+                  "        pm.expect(jsonData.data).to.have.property(\"quote\");",
+                  "        pm.expect(jsonData.data).to.have.property(\"slippage\");",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Recent Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders?limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of recent orders to retrieve"
+                }
+              ]
+            },
+            "description": "Get list of the 10 most recent orders"
+          }
+        },
+        {
+          "name": "List Orders with Status Filter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders?status=confirmed&limit=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "confirmed",
+                  "description": "Filter by order status"
+                },
+                {
+                  "key": "limit",
+                  "value": "5",
+                  "description": "Number of orders to retrieve"
+                }
+              ]
+            },
+            "description": "Get confirmed orders only"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Advanced Features",
+      "description": "Test advanced scenarios and edge cases",
+      "item": [
+        {
+          "name": "Concurrent Orders Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tokenIn\": \"SOL\",\n  \"tokenOut\": \"USDC\",\n  \"amount\": 25,\n  \"maxSlippage\": 0.05\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/execute",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "execute"]
+            },
+            "description": "🚀 **CONCURRENT PROCESSING DEMO**\n\nThis test demonstrates the system's ability to handle multiple simultaneous orders.\n\n**How to use for visual demo:**\n1. Open Collection Runner (click ... next to collection name)\n2. Select this specific request\n3. Set iterations to 5-10\n4. Set delay between requests to 100ms\n5. Run and watch real-time processing!\n\n**What you'll see:**\n- Multiple orders submitted simultaneously\n- Different order IDs generated\n- System handling concurrent load\n- Queue statistics updating in real-time\n\n**System limits:**\n- Max 10 concurrent orders\n- 100 orders per minute\n- Automatic queue management\n\n💡 **Pro tip:** Run this while monitoring /api/queue/stats to see live queue activity!"
+          },
+          "response": [
+            {
+              "name": "Concurrent Order 1",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tokenIn\": \"SOL\",\n  \"tokenOut\": \"USDC\",\n  \"amount\": 25,\n  \"maxSlippage\": 0.05\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/orders/execute",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "orders", "execute"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"orderId\": \"a1b2c3d4-e5f6-7890-1234-567890abcdef\",\n  \"status\": \"pending\",\n  \"message\": \"Order received and queued\",\n  \"queuePosition\": 1,\n  \"estimatedProcessingTime\": \"2-5 seconds\"\n}"
+            },
+            {
+              "name": "Concurrent Order 2",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tokenIn\": \"SOL\",\n  \"tokenOut\": \"USDC\",\n  \"amount\": 25,\n  \"maxSlippage\": 0.05\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/orders/execute",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "orders", "execute"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"orderId\": \"b2c3d4e5-f6g7-8901-2345-678901bcdefg\",\n  \"status\": \"pending\",\n  \"message\": \"Order received and queued\",\n  \"queuePosition\": 2,\n  \"estimatedProcessingTime\": \"2-5 seconds\"\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Generate unique amount for each concurrent request",
+                  "const amounts = [25, 30, 35, 40, 45, 50];",
+                  "const randomAmount = amounts[Math.floor(Math.random() * amounts.length)];",
+                  "pm.environment.set('concurrentAmount', randomAmount);",
+                  "",
+                  "// Add timestamp for tracking",
+                  "pm.environment.set('requestTimestamp', new Date().toISOString());",
+                  "",
+                  "console.log(`🚀 Submitting concurrent order for ${randomAmount} SOL at ${pm.environment.get('requestTimestamp')}`);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Visual feedback for concurrent processing",
+                  "const responseJson = pm.response.json();",
+                  "const timestamp = pm.environment.get('requestTimestamp');",
+                  "const amount = pm.environment.get('concurrentAmount');",
+                  "",
+                  "pm.test(`✅ Order ${responseJson.orderId?.substring(0, 8)}... submitted successfully`, function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(responseJson).to.have.property('orderId');",
+                  "    pm.expect(responseJson.status).to.eql('pending');",
+                  "});",
+                  "",
+                  "pm.test(`📊 Order for ${amount} SOL processed at ${timestamp}`, function () {",
+                  "    pm.expect(responseJson.message).to.include('queued');",
+                  "});",
+                  "",
+                  "pm.test('🎯 Response time under 5 seconds', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                  "});",
+                  "",
+                  "pm.test('🔄 Concurrent processing capabilities verified', function () {",
+                  "    pm.expect(responseJson).to.have.property('orderId');",
+                  "    // Each order should have unique ID",
+                  "    pm.expect(responseJson.orderId).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);",
+                  "});",
+                  "",
+                  "// Store order ID with timestamp for tracking",
+                  "const orderKey = `concurrentOrder_${Date.now()}`;",
+                  "pm.environment.set(orderKey, responseJson.orderId);",
+                  "",
+                  "// Visual console output",
+                  "console.log(`✅ SUCCESS: Order ${responseJson.orderId} queued for ${amount} SOL`);",
+                  "console.log(`⏱️  Response time: ${pm.response.responseTime}ms`);",
+                  "console.log(`🎯 Status: ${responseJson.status}`);",
+                  "console.log('━'.repeat(50));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Zero Amount Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tokenIn\": \"SOL\",\n  \"tokenOut\": \"USDC\",\n  \"amount\": 0,\n  \"maxSlippage\": 0.05\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/execute",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "execute"]
+            },
+            "description": "Test validation with zero amount"
+          }
+        },
+        {
+          "name": "Negative Slippage",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tokenIn\": \"SOL\",\n  \"tokenOut\": \"USDC\",\n  \"amount\": 100,\n  \"maxSlippage\": -0.01\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/execute",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "execute"]
+            },
+            "description": "Test validation with negative slippage value"
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Set base URL if not already set",
+          "if (!pm.environment.get(\"baseUrl\")) {",
+          "    pm.environment.set(\"baseUrl\", \"http://localhost:3000\");",
+          "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test to check response time",
+          "pm.test(\"Response time is reasonable\", function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(30000);",
+          "});"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ]
+} 

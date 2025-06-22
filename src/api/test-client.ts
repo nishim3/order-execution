@@ -1,4 +1,4 @@
-import WebSocket from 'ws';
+import * as WebSocket from 'ws';
 
 // Interface for quote response
 interface QuoteResponse {
@@ -9,7 +9,8 @@ interface QuoteResponse {
     dex: string;
     price: number;
     fee: number;
-    effectivePrice: number;
+    feeAmount: number;
+    amountAfterFee: number;
     feePercentage: string;
   };
   estimatedOutput: string;
@@ -45,8 +46,8 @@ async function testQuoteAPI() {
   console.log(`   Amount: ${quote.amount} ${quote.tokenIn}`);
   console.log(`   Best DEX: ${quote.quote.dex}`);
   console.log(`   Price: $${quote.quote.price.toFixed(4)}`);
-  console.log(`   Fee: ${quote.quote.feePercentage}`);
-  console.log(`   Effective Price: $${quote.quote.effectivePrice.toFixed(4)}`);
+  console.log(`   Fee: ${quote.quote.feePercentage} (${quote.quote.feeAmount.toFixed(4)} ${quote.tokenIn})`);
+  console.log(`   Amount After Fee: ${quote.quote.amountAfterFee.toFixed(4)} ${quote.tokenIn}`);
   console.log(`   Estimated Output: ${quote.estimatedOutput} ${quote.tokenOut}`);
   console.log(`   Timestamp: ${quote.timestamp}\n`);
 
@@ -89,58 +90,59 @@ async function testOrderExecution() {
   console.log('2️⃣ Connecting to WebSocket for real-time updates...');
   const ws = new WebSocket(`ws://localhost:3000/api/orders/${order.orderId}/ws`);
 
-  ws.on('open', () => {
-    console.log('🔌 WebSocket connected');
-  });
+  return new Promise<void>((resolve) => {
+    let resolved = false;
 
-  ws.on('message', (data: WebSocket.RawData) => {
-    const message: any = JSON.parse(data.toString());
-    console.log(`📨 WebSocket update:`, {
-      status: message.status,
-      message: message.message,
-      data: message.data,
-      timestamp: message.timestamp,
+    ws.on('open', () => {
+      console.log('🔌 WebSocket connected');
     });
 
-    // Close connection when order is completed or failed
-    if (message.status === 'confirmed' || message.status === 'failed') {
-      console.log('✅ Order completed, closing WebSocket connection');
-      ws.close();
-    }
-  });
+    ws.on('message', (data: WebSocket.RawData) => {
+      const message: any = JSON.parse(data.toString());
+      console.log(`📨 WebSocket update:`, {
+        status: message.status,
+        message: message.message,
+        data: message.data,
+        timestamp: message.timestamp,
+      });
 
-  ws.on('error', (error: Error) => {
-    console.error('❌ WebSocket error:', error);
-  });
-
-  ws.on('close', () => {
-    console.log('🔌 WebSocket disconnected');
-  });
-
-  // Test 3: Poll order status via REST API
-  console.log('3️⃣ Polling order status via REST API...');
-  const pollInterval = setInterval(async () => {
-    try {
-      const statusResponse = await fetch(`http://localhost:3000/api/orders/${order.orderId}`);
-      if (statusResponse.ok) {
-        const status: any = await statusResponse.json();
-        console.log(`📊 Order status: ${status.status} - ${status.message}`);
-        
-        if (status.status === 'confirmed' || status.status === 'failed') {
-          clearInterval(pollInterval);
-          console.log('✅ Order completed, stopping polling');
+      // Close connection when order is completed or failed
+      if (message.status === 'confirmed' || message.status === 'failed') {
+        console.log('✅ Order completed, closing WebSocket connection');
+        ws.close();
+        if (!resolved) {
+          resolved = true;
+          resolve();
         }
       }
-    } catch (error: any) {
-      console.error('❌ Error polling status:', error);
-    }
-  }, 2000); // Poll every 2 seconds
+    });
 
-  // Stop polling after 30 seconds
-  setTimeout(() => {
-    clearInterval(pollInterval);
-    console.log('⏰ Polling timeout reached');
-  }, 30000);
+    ws.on('error', (error: Error) => {
+      console.error('❌ WebSocket error:', error);
+      if (!resolved) {
+        resolved = true;
+        resolve();
+      }
+    });
+
+    ws.on('close', (code: number, reason: Buffer) => {
+      console.log(`🔌 WebSocket disconnected (code: ${code}, reason: ${reason.toString()})`);
+      if (!resolved) {
+        resolved = true;
+        resolve();
+      }
+    });
+
+    // Auto-resolve after 30 seconds if order doesn't complete
+    setTimeout(() => {
+      if (!resolved) {
+        console.log('⏰ WebSocket timeout, closing connection');
+        ws.close();
+        resolved = true;
+        resolve();
+      }
+    }, 30000);
+  });
 }
 
 // Test health check
@@ -169,6 +171,8 @@ async function runTests() {
 
   // Test order execution
   await testOrderExecution();
+  
+  console.log('\n🎉 All tests completed!');
 }
 
 // Run tests if this file is executed directly

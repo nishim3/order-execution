@@ -167,13 +167,22 @@ export class QueueService {
         'Quote request timed out'
       );
 
+      // Calculate fee details (same as quote API)
+      const feeAmount = orderRequest.amount * bestQuote.quote.fee;
+      const amountAfterFee = orderRequest.amount - feeAmount;
+      const estimatedOutput = amountAfterFee * bestQuote.quote.price;
+
       // Update status to BUILDING
       await this.updateOrderProgress(orderId, OrderStatus.BUILDING, 'Creating transaction...', {
         quote: {
           dex: bestQuote.dex,
           price: bestQuote.quote.price,
           fee: bestQuote.quote.fee,
+          feeAmount: feeAmount,
+          amountAfterFee: amountAfterFee,
+          feePercentage: (bestQuote.quote.fee * 100).toFixed(2) + '%',
         },
+        estimatedOutput: estimatedOutput.toFixed(6),
       });
       await this.databaseService.updateOrderStatus(orderId, OrderStatus.BUILDING, {
         quoteDex: bestQuote.dex,
@@ -202,10 +211,21 @@ export class QueueService {
       const slippage = Math.abs((swapResult.executedPrice - bestQuote.quote.price) / bestQuote.quote.price);
       
       await this.updateOrderProgress(orderId, OrderStatus.CONFIRMED, 'Transaction confirmed!', {
+        quote: {
+          dex: bestQuote.dex,
+          price: bestQuote.quote.price,
+          fee: bestQuote.quote.fee,
+          feeAmount: feeAmount,
+          amountAfterFee: amountAfterFee,
+          feePercentage: (bestQuote.quote.fee * 100).toFixed(2) + '%',
+        },
+        estimatedOutput: estimatedOutput.toFixed(6),
         txHash: swapResult.txHash,
         executedPrice: swapResult.executedPrice,
         slippage: slippage,
         attempts: attemptNumber + 1,
+        transactions: swapResult.transactions,
+        requiresWrapping: swapResult.requiresWrapping,
       });
 
       await this.databaseService.updateOrderStatus(orderId, OrderStatus.CONFIRMED, {
@@ -213,6 +233,11 @@ export class QueueService {
         executedPrice: swapResult.executedPrice,
         slippage: slippage,
         attempts: attemptNumber + 1,
+        errorMessage: null, // Clear any previous error messages from failed attempts
+        wrapTxHash: swapResult.transactions?.wrapTxHash,
+        swapTxHash: swapResult.transactions?.swapTxHash,
+        unwrapTxHash: swapResult.transactions?.unwrapTxHash,
+        requiresWrapping: swapResult.requiresWrapping,
       });
 
       // Remove from active orders

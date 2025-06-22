@@ -18,6 +18,12 @@ interface Quote {
 interface SwapResult {
   txHash: string;
   executedPrice: number;
+  transactions?: {
+    wrapTxHash?: string;    // Transaction for token wrapping (e.g., SOL → wSOL)
+    swapTxHash: string;     // Transaction for the actual swap
+    unwrapTxHash?: string;  // Transaction for unwrapping (e.g., wSOL → SOL)
+  };
+  requiresWrapping?: boolean;
 }
 
 // Utility function to simulate network delay
@@ -61,7 +67,55 @@ class MockDexRouter {
     // Simulate 2-3 second execution
     await sleep(2000 + Math.random() * 1000);
     const finalPrice = basePrice * (0.95 + Math.random() * 0.1); // Price can change during execution
-    return { txHash: generateMockTxHash(), executedPrice: finalPrice };
+    
+    // Determine if wrapping is required based on token types
+    const requiresWrapping = this.needsWrapping(order.tokenIn, order.tokenOut);
+    
+    if (requiresWrapping) {
+      // Generate multiple transaction hashes for complex operations
+      const wrapTxHash = generateMockTxHash();
+      const swapTxHash = generateMockTxHash();
+      const unwrapTxHash = this.needsUnwrapping(order.tokenOut) ? generateMockTxHash() : undefined;
+      
+      return { 
+        txHash: swapTxHash, // Primary transaction hash (for backward compatibility)
+        executedPrice: finalPrice,
+        requiresWrapping: true,
+        transactions: {
+          wrapTxHash,
+          swapTxHash,
+          unwrapTxHash
+        }
+      };
+    } else {
+      // Simple swap - single transaction
+      return { 
+        txHash: generateMockTxHash(), 
+        executedPrice: finalPrice,
+        requiresWrapping: false
+      };
+    }
+  }
+
+  /**
+   * Determine if wrapping is needed for the input token
+   */
+  private needsWrapping(tokenIn: string, tokenOut: string): boolean {
+    // Wrapping scenarios:
+    // SOL → any token (needs SOL → wSOL wrapping)
+    // Any token → SOL (may need wSOL → SOL unwrapping at the end)
+    const wrappingTokens = ['SOL'];
+    return wrappingTokens.includes(tokenIn) || wrappingTokens.includes(tokenOut);
+  }
+
+  /**
+   * Determine if unwrapping is needed for the output token
+   */
+  private needsUnwrapping(tokenOut: string): boolean {
+    // Unwrapping scenarios:
+    // Any swap resulting in SOL needs unwrapping
+    const unwrappingTokens = ['SOL'];
+    return unwrappingTokens.includes(tokenOut);
   }
 
   /**
@@ -75,18 +129,24 @@ class MockDexRouter {
       this.getMeteorQuote(tokenIn, tokenOut, amount)
     ]);
 
-    console.log(`📊 Raydium: $${raydiumQuote.price.toFixed(4)} (fee: ${(raydiumQuote.fee * 100).toFixed(2)}%) → Effective: $${(raydiumQuote.price * (1 + raydiumQuote.fee)).toFixed(4)}`);
-    console.log(`📊 Meteor: $${meteorQuote.price.toFixed(4)} (fee: ${(meteorQuote.fee * 100).toFixed(2)}%) → Effective: $${(meteorQuote.price * (1 + meteorQuote.fee)).toFixed(4)}`);
+    // Calculate output after fee (fee taken from input)
+    const raydiumFeeAmount = amount * raydiumQuote.fee;
+    const raydiumAmountAfterFee = amount - raydiumFeeAmount;
+    const raydiumOutput = raydiumAmountAfterFee * raydiumQuote.price;
+    
+    const meteorFeeAmount = amount * meteorQuote.fee;
+    const meteorAmountAfterFee = amount - meteorFeeAmount;
+    const meteorOutput = meteorAmountAfterFee * meteorQuote.price;
 
-    // Calculate effective price (price + fee)
-    const raydiumEffective = raydiumQuote.price * (1 + raydiumQuote.fee);
-    const meteorEffective = meteorQuote.price * (1 + meteorQuote.fee);
+    console.log(`📊 Raydium: $${raydiumQuote.price.toFixed(4)} (fee: ${(raydiumQuote.fee * 100).toFixed(2)}%) → Output: ${raydiumOutput.toFixed(6)} ${tokenOut}`);
+    console.log(`📊 Meteor: $${meteorQuote.price.toFixed(4)} (fee: ${(meteorQuote.fee * 100).toFixed(2)}%) → Output: ${meteorOutput.toFixed(6)} ${tokenOut}`);
 
-    if (raydiumEffective < meteorEffective) {
-      console.log(`✅ Raydium offers better price: $${raydiumEffective.toFixed(4)} vs $${meteorEffective.toFixed(4)}`);
+    // Select DEX with higher output (better for user)
+    if (raydiumOutput > meteorOutput) {
+      console.log(`✅ Raydium offers better output: ${raydiumOutput.toFixed(6)} vs ${meteorOutput.toFixed(6)} ${tokenOut}`);
       return { dex: 'Raydium', quote: raydiumQuote };
     } else {
-      console.log(`✅ Meteor offers better price: $${meteorEffective.toFixed(4)} vs $${raydiumEffective.toFixed(4)}`);
+      console.log(`✅ Meteor offers better output: ${meteorOutput.toFixed(6)} vs ${raydiumOutput.toFixed(6)} ${tokenOut}`);
       return { dex: 'Meteor', quote: meteorQuote };
     }
   }
@@ -162,7 +222,20 @@ class MockDexRouter {
       console.log(`   No Price Change`);
     }
     
-    console.log(`   TX Hash: ${result.txHash}`);
+    // Display transaction details
+    if (result.requiresWrapping && result.transactions) {
+      console.log(`   🔄 Complex Transaction (Wrapping Required):`);
+      if (result.transactions.wrapTxHash) {
+        console.log(`   📦 Wrap TX: ${result.transactions.wrapTxHash}`);
+      }
+      console.log(`   🔀 Swap TX: ${result.transactions.swapTxHash}`);
+      if (result.transactions.unwrapTxHash) {
+        console.log(`   📤 Unwrap TX: ${result.transactions.unwrapTxHash}`);
+      }
+      console.log(`   🏷️  Primary TX: ${result.txHash}`);
+    } else {
+      console.log(`   TX Hash: ${result.txHash}`);
+    }
     
     return result;
   }
